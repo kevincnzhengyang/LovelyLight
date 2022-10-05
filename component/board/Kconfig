@@ -1,0 +1,55 @@
+menu "Lovely Ligh"
+    menu "LED Config"
+        config PIN_LED_R
+            int "GPIO for LED Red"
+            default 16 if IDF_TARGET_ESP32
+            default 36 if IDF_TARGET_ESP32S2
+        config PIN_LED_G
+            int "GPIO for LED Green"
+            default 4 if IDF_TARGET_ESP32
+            default 35 if IDF_TARGET_ESP32S2
+        config PIN_LED_B
+            int "GPIO for LED Blue"
+            default 17 if IDF_TARGET_ESP32
+            default 37 if IDF_TARGET_ESP32S2
+    endmenu
+    menu "Battery Config"
+        config PIN_BAT_CHRG
+            int "GPIO for Battery Charging"
+            default 34 if IDF_TARGET_ESP32
+            default 6 if IDF_TARGET_ESP32S2
+        config PIN_BAT_STBY
+            int "GPIO for Battery Standby"
+            default 35 if IDF_TARGET_ESP32
+            default 7 if IDF_TARGET_ESP32S2
+        config PIN_BAT_VLTG
+            int "ADC channel for Battery Voltage Monitor"
+            default 0 if IDF_TARGET_ESP32
+            default 3 if IDF_TARGET_ESP32S2
+    endmenu
+    menu "Vibration Config"
+        config PIN_VIAB_INT
+            int "GPIO for Vibration Interrupt"
+            default 39 if IDF_TARGET_ESP32
+            default 5 if IDF_TARGET_ESP32S2
+    endmenu
+    menu  "Microphone Config"
+        config PIN_DMIC_SCK
+            int "GPIO for DMIC I2C SCK"
+            default 32 if IDF_TARGET_ESP32
+            default 15 if IDF_TARGET_ESP32S2
+        config PIN_DMIC_WS
+            int "GPIO for DMIC I2C WS"
+            default 33 if IDF_TARGET_ESP32
+            default 16 if IDF_TARGET_ESP32S2
+        config PIN_DMIC_SDO
+            int "GPIO for DMIC I2C SDO"
+            default 25 if IDF_TARGET_ESP32
+            default 17 if IDF_TARGET_ESP32S2
+    endmenu
+    menu "Button Config"
+        config PIN_BUTTON
+            int "GPIO for Button"
+            default 0
+    endmenu
+endmenu
