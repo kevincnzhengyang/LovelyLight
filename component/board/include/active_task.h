@@ -32,13 +32,13 @@ class ActiveTask
         size_t putMessage(const void * pvTxData, size_t xDataLengthBytes,
                 uint32_t msWait);
 
-        virtual void run(void) = 0;
-
         char                    *_name;     // name of task
 
     protected:
         size_t getMessage(void * pvRxData, size_t xBufferLengthBytes,
                 uint32_t msWait);
+
+        virtual void run(void) = 0;
 
     private:
         static void taskFunction(void *param)

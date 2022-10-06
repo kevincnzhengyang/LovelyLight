@@ -19,12 +19,11 @@
 #include "board_data.h"
 #include "black_board.h"
 
-#define BB_TAG "IAP"
+#define BB_TAG "BlackBoard"
 #define BB_DEBUG(fmt, ...)  ESP_LOGD(BB_TAG, fmt, ##__VA_ARGS__)
 #define BB_INFO(fmt, ...)   ESP_LOGI(BB_TAG, fmt, ##__VA_ARGS__)
 #define BB_WARN(fmt, ...)   ESP_LOGW(BB_TAG, fmt, ##__VA_ARGS__)
 #define BB_ERROR(fmt, ...)  ESP_LOGE(BB_TAG, fmt, ##__VA_ARGS__)
-
 
 typedef struct
 {

@@ -24,10 +24,10 @@
  *  error code
  */
 #define APP_ERR_BASE                0x100000  /*!< Starting number of APP error codes */
-#define BB_LACK_SPACE               (APP_ERR_BASE+1)
-#define BB_KEY_DUPLICATED           (APP_ERR_BASE+2)
-#define BB_KEY_NOTEXIST             (APP_ERR_BASE+3)
-#define BB_FLUSH_TEMP               (APP_ERR_BASE+4)
+#define BB_LACK_SPACE               (APP_ERR_BASE+0x01)
+#define BB_KEY_DUPLICATED           (APP_ERR_BASE+0x02)
+#define BB_KEY_NOTEXIST             (APP_ERR_BASE+0x03)
+#define BB_FLUSH_TEMP               (APP_ERR_BASE+0x04)
 
 /**
  * Macros from Arduino

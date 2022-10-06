@@ -1,3 +1,3 @@
-idf_component_register(SRCS "board_init.c" "board_config.c"
+idf_component_register(SRCS "led_rgb.c" "led_task.cpp"
                     INCLUDE_DIRS "include"
-                    REQUIRES nvs_flash blufi button iap ld-mqtt)
+                    REQUIRES board)
