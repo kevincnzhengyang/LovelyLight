@@ -52,7 +52,7 @@ void ActiveTask::begin(void)
     assert("Failed to create mutex" && _mutex != NULL);
 }
 
-size_t ActiveTask::SendMessage(const void * pvTxData, size_t xDataLengthBytes,
+size_t ActiveTask::putMessage(const void * pvTxData, size_t xDataLengthBytes,
         uint32_t msWait)
 {
     xSemaphoreTake(_mutex, pdMS_TO_TICKS(msWait));
@@ -62,7 +62,7 @@ size_t ActiveTask::SendMessage(const void * pvTxData, size_t xDataLengthBytes,
     return size;
 }
 
-size_t ActiveTask::recvMessage(void * pvRxData, size_t xBufferLengthBytes,
+size_t ActiveTask::getMessage(void * pvRxData, size_t xBufferLengthBytes,
         uint32_t msWait)
 {
     return xMessageBufferReceive(_msgBuff, pvRxData, xBufferLengthBytes,

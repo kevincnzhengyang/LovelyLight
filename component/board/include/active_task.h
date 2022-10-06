@@ -21,7 +21,7 @@ class ActiveTask
                 const BaseType_t coreId = tskNO_AFFINITY,
                 size_t msgBuffSize = 256);
 
-        ~ActiveTask();
+        virtual ~ActiveTask();
 
         TaskHandle_t getHandle(void);
 
@@ -29,14 +29,15 @@ class ActiveTask
 
         void begin(void);
 
-        size_t SendMessage(const void * pvTxData, size_t xDataLengthBytes,
+        size_t putMessage(const void * pvTxData, size_t xDataLengthBytes,
                 uint32_t msWait);
 
         virtual void run(void) = 0;
-    protected:
+
         char                    *_name;     // name of task
 
-        size_t recvMessage(void * pvRxData, size_t xBufferLengthBytes,
+    protected:
+        size_t getMessage(void * pvRxData, size_t xBufferLengthBytes,
                 uint32_t msWait);
 
     private:
