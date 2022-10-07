@@ -49,7 +49,7 @@ ActiveTask *getTaskByName(const char *tname)
     return (gTaskMap.end() == iter) ? NULL : iter->second;
 }
 
-size_t SendMessageTo(const char *name, const void * pvTxData,
+size_t sendMessageTo(const char *name, const void * pvTxData,
         size_t xDataLengthBytes, uint32_t msWait)
 {
     ActiveTask * task = getTaskByName(name);

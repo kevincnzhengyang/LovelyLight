@@ -41,15 +41,15 @@ MessageBufferHandle_t ActiveTask::getMessageBuffer(void)
 
 void ActiveTask::begin(void)
 {
-    BaseType_t result = xTaskCreatePinnedToCore(taskFunction, _name,
-            _stackDepth, this, _priority, &_taskHandle, _coreId);
-    assert("Failed to create task" && result == pdPASS);
-
     _msgBuff = xMessageBufferCreate(_msgBuffSize);
     assert("Failed to create message buffer" && _msgBuff != NULL);
 
     _mutex = xSemaphoreCreateMutex();
     assert("Failed to create mutex" && _mutex != NULL);
+
+    BaseType_t result = xTaskCreatePinnedToCore(taskFunction, _name,
+            _stackDepth, this, _priority, &_taskHandle, _coreId);
+    assert("Failed to create task" && result == pdPASS);
 }
 
 size_t ActiveTask::putMessage(const void * pvTxData, size_t xDataLengthBytes,

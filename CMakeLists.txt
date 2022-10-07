@@ -4,11 +4,11 @@ cmake_minimum_required(VERSION 3.5)
 
 set(EXTRA_COMPONENT_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/component/board
+    ${CMAKE_CURRENT_SOURCE_DIR}/component/leds
     # ${CMAKE_CURRENT_SOURCE_DIR}/../../components/led_rgb
     # ${CMAKE_CURRENT_SOURCE_DIR}/../../components/sensor
     # ${CMAKE_CURRENT_SOURCE_DIR}/../../components/button
     )
-
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(lovlylight)

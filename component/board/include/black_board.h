@@ -17,7 +17,7 @@
 /**
  * just simple singlton but not thread safe
  *
- * assume to be constructed by app_main
+ * assume to be initialized by app_main
  *
  * and also assume NVS init flash already done
  */

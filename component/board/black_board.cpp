@@ -35,9 +35,9 @@ typedef struct
 typedef struct
 {
     size_t                    buffSize;
+    SemaphoreHandle_t          wrMutex;
     uint8_t                      *base;
     uint8_t                     *wrPtr;
-    SemaphoreHandle_t          wrMutex;
     nvs_handle_t                  hNVS;
 } BB_DataBuffer;
 
@@ -68,23 +68,25 @@ void initBlackBoard(size_t buffSize)
     assert("Failed to open NVS" && ESP_OK == err);
 
     // find blackboard namespace in partition NVS_DEFAULT_PART_NAME (“nvs”)
-    nvs_iterator_t head = nvs_entry_find(NULL, "BlackBoard", NVS_TYPE_BLOB);
-    nvs_iterator_t entry = nullptr;
+    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, "BlackBoard", NVS_TYPE_BLOB);
     nvs_entry_info_t info;
 
     BB_INFO("open NVS ok");
 
     size_t cap = gDataBuffer.buffSize;
-    size_t length = 0;
-    while (NULL != (entry = nvs_entry_next(head)))
+    size_t length = cap;
+    while (NULL != it)
     {
-        nvs_entry_info(entry, &info);
+        nvs_entry_info(it, &info);
+        it = nvs_entry_next(it);
         BB_INFO("loading %s from NVS", info.key);
         err = nvs_get_blob(gDataBuffer.hNVS, info.key,
                 gDataBuffer.wrPtr, &length);
         if (ESP_OK != err)
         {
             BB_ERROR("load %s failed due to %d", info.key, err);
+            ESP_ERROR_CHECK(nvs_flash_erase());
+            nvs_flash_init();
             assert(false);
         }
 
@@ -97,6 +99,7 @@ void initBlackBoard(size_t buffSize)
         cap -= length;
         length = cap;
     }
+
     BB_INFO("init ok");
 }
 
@@ -120,6 +123,7 @@ void *getPublishData(const char *key)
 esp_err_t registBlackBoardData(const char *key, size_t dataSize,
         bool persisted, uint32_t msWait)
 {
+    BB_DEBUG("register data %s %d %d", key, dataSize, persisted);
     // prepare block
     BB_DataBlock db = {
         .persisted = persisted,
@@ -135,6 +139,7 @@ esp_err_t registBlackBoardData(const char *key, size_t dataSize,
     gDataBuffer.wrPtr += dataSize;
     gDataMap.insert(DataValueType(std::string(key), db));
     xSemaphoreGive(gDataBuffer.wrMutex);
+    BB_DEBUG("registered data %s to %p", key, db.rdPtr);
     return ESP_OK;
 }
 
