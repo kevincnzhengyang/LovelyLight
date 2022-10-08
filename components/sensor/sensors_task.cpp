@@ -139,6 +139,7 @@ void SensorsTask::run(void)
     uint32_t last = millis();
     while (true)
     {
+        // SENSORS_DEBUG("-----");
         uint32_t now = millis();
         if (now - last >= pdMS_TO_TICKS(5000))
         {

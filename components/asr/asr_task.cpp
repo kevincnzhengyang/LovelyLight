@@ -116,31 +116,19 @@ void AsrTask::run(void)
 
     int *buffer = (int *)malloc(size * 2 * sizeof(int));
     bool enable_wn = true;
+    uint32_t w_count = 0;
 
     ASR_INFO("Init I2S...");
     i2s_init();
 
     size_t read_len = 0;
-
-    int intv = 10;
-    uint32_t last = millis();
     ASR_INFO("running...");
 
     while (true)
     {
-        i2s_read(I2S_NUM_1, buffer, size * 2 * sizeof(int), &read_len, pdMS_TO_TICKS(2000));
-        uint32_t now = millis();
-        if (now - last >= pdMS_TO_TICKS(5000))
-        {
-            ASR_DEBUG("reset watch dog");
-            last = now;
-            esp_task_wdt_reset();  // feed watch dog
-        }
-        else
-        {
-            ASR_DEBUG("%u <-> %u", now, last);
-            // delay(10);
-        }
+        w_count++;
+
+        i2s_read(I2S_NUM_1, buffer, size * 2 * sizeof(int), &read_len, portMAX_DELAY);
 
         for (int x = 0; x < size * 2 / 4; x++)
         {
@@ -151,23 +139,29 @@ void AsrTask::run(void)
 
         if (enable_wn)
         {
-
-            ASR_DEBUG("wait for wakeup");
             int r = g_wakenet->detect(g_model_wn_data, (int16_t *)buffer);
             if (r)
             {
                 ASR_DEBUG("%s DETECTED", g_wakenet->get_word_name(g_model_wn_data, r));
                 _generateCommand(-1); // wakeup
                 enable_wn = false;
-                last = now;
-                intv = 10;  // reset intv
-                continue;
+                w_count = 0;
             }
             else
             {
-                // increase intv with step
-                // intv = (intv >= 1000) ? 1000 : (intv+10);  // max delay 1s
-                // delay(intv);
+                // ASR_DEBUG("wait times %d", w_count);
+                if (w_count > 100)
+                {
+                    // ASR_DEBUG("wait for wakeup too long");
+                    // i2s_stop(I2S_NUM_1);
+                    i2s_driver_uninstall(I2S_NUM_1);
+                    // ASR_DEBUG(">>>>>");
+                    delay(5000);
+                    // ASR_DEBUG(".......");
+                    // i2s_start(I2S_NUM_1);
+                    i2s_init();
+                    w_count = 0;
+                }
             }
         }
         else
@@ -178,19 +172,15 @@ void AsrTask::run(void)
             {
                 ASR_DEBUG("MN test successfully, Commands ID: %d", command_id);
                 _generateCommand(command_id);
-                last = now;
             }
             else
             {
                 // ASR_DEBUG("MN test successfully, empty");
-                if (now - last >= 6000)
+                if (w_count > 100)
                 {
-                    // no command in 6s
-                    ASR_DEBUG("stop multinet");
-                    _generateCommand(-2); // sleep
                     enable_wn = true;
+                    w_count = 0;
                 }
-                // delay(10);
             }
         }
     }

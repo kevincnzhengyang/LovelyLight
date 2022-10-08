@@ -69,10 +69,10 @@ extern "C" void app_main()
     APP_INFO("LED Task ready");
     assert(registTask(ledsTask));
     APP_INFO("LED Task registed");
-    // ledsTask->begin();
+    ledsTask->begin();
 
     // asr task
-    AsrTask *asrTask = new AsrTask("asrTask", 1024*8, 4, 1);
+    AsrTask *asrTask = new AsrTask("asrTask", 1024*8, 1, 1);
     assert("Failed to create asr task" && NULL != asrTask);
     APP_INFO("ASR Task ready");
     assert(registTask(asrTask));
@@ -80,7 +80,7 @@ extern "C" void app_main()
     asrTask->begin();
 
     // sensors task
-    SensorsTask *sensorsTask = new SensorsTask("sensorsTask", 2048, 1, 0);
+    SensorsTask *sensorsTask = new SensorsTask("sensorsTask", 2048, 24, 0);
     assert("Failed to create sensors task" && NULL != sensorsTask);
     APP_INFO("Sensors Task ready");
     assert(registTask(sensorsTask));
