@@ -29,6 +29,7 @@ typedef struct
 
 enum LedCmdType
 {
+    LED_SLEEP,
     LED_WAKEUP,
     LED_TURNON,
     LED_TURNOFF,
@@ -56,7 +57,7 @@ class LedsTask: public ActiveTask
     public:
         LedsTask(const char *tName, uint32_t stackDepth, UBaseType_t priority,
                 const BaseType_t coreId = tskNO_AFFINITY,
-                size_t msgBuffSize = sizeof(char)*8);
+                size_t msgBuffSize = (sizeof(char) + 4)*8);
 
         ~LedsTask(void);
 

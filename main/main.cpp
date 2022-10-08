@@ -1,14 +1,5 @@
 /***
  * @Author      : kevin.z.y <kevin.cn.zhengyang@gmail.com>
- * @Date        : 2022-10-05 18:58:37
- * @LastEditors : kevin.z.y <kevin.cn.zhengyang@gmail.com>
- * @LastEditTime: 2022-10-05 19:13:47
- * @FilePath    : /LovelyLight/main/main.cpp
- * @Description :
- * @Copyright (c) 2022 by Zheng, Yang, All Rights Reserved.
- */
-/***
- * @Author      : kevin.z.y <kevin.cn.zhengyang@gmail.com>
  * @Date        : 2022-10-05 17:44:27
  * @LastEditors : kevin.z.y <kevin.cn.zhengyang@gmail.com>
  * @LastEditTime: 2022-10-05 17:44:28
@@ -24,11 +15,12 @@
 #include "esp_event.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "esp_task_wdt.h"
 
 #include "black_board.h"
 #include "task_map.h"
 #include "led_task.h"
-
+#include "asr_task.h"
 
 #define APP_TAG "App"
 #define APP_DEBUG(fmt, ...)  ESP_LOGD(APP_TAG, fmt, ##__VA_ARGS__)
@@ -42,6 +34,7 @@ extern "C" void app_main()
     esp_log_level_set("*", ESP_LOG_INFO);
     esp_log_level_set("LEDs", ESP_LOG_DEBUG);
     esp_log_level_set("BlackBoard", ESP_LOG_DEBUG);
+    esp_log_level_set("ASR", ESP_LOG_DEBUG);
 
     APP_INFO("Startup..");
     APP_INFO("Free Heap Size: %d bytes", esp_get_free_heap_size());
@@ -50,7 +43,11 @@ extern "C" void app_main()
     // create event loop
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    /**< Initialize NVS */
+    // watchdog
+    ESP_ERROR_CHECK(esp_task_wdt_init(10000, false));
+    APP_INFO("Watch Dog init");
+
+    /* Initialize NVS */
     esp_err_t ret = nvs_flash_init();
 
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -60,21 +57,25 @@ extern "C" void app_main()
     ESP_ERROR_CHECK(ret);
     APP_INFO("NVS flash init");
 
+    // initialize black board
     initBlackBoard(1024);
     APP_INFO("BlackBoard init");
 
-    LedsTask *ledsTask = new LedsTask("ledsTask", 4096, 1, 0);
+    // leds task
+    LedsTask *ledsTask = new LedsTask("ledsTask", 2048, 24, 0);
     assert("Failed to create leds task" && NULL != ledsTask);
     APP_INFO("LED Task ready");
-
     assert(registTask(ledsTask));
     APP_INFO("LED Task registed");
-
     ledsTask->begin();
-    delay(2000);
 
-    // uint8_t cmd = (uint8_t)LedCmdType::LED_WAKEUP;
-    // assert(sizeof(uint8_t) == sendMessageTo("ledsTask", &cmd, sizeof(uint8_t), 20));
+    // asr task
+    AsrTask *asrTask = new AsrTask("asrTask", 1024*8, 24, 1);
+    assert("Failed to create asr task" && NULL != asrTask);
+    APP_INFO("ASR Task ready");
+    assert(registTask(asrTask));
+    APP_INFO("ASR Task registed");
+    asrTask->begin();
 
     while (1) {
         vTaskDelay(3000 / portTICK_PERIOD_MS);

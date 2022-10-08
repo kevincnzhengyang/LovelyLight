@@ -41,11 +41,14 @@ MessageBufferHandle_t ActiveTask::getMessageBuffer(void)
 
 void ActiveTask::begin(void)
 {
-    _msgBuff = xMessageBufferCreate(_msgBuffSize);
-    assert("Failed to create message buffer" && _msgBuff != NULL);
+    if (_msgBuffSize > 4)
+    {
+        _msgBuff = xMessageBufferCreate(_msgBuffSize);
+        assert("Failed to create message buffer" && _msgBuff != NULL);
 
-    _mutex = xSemaphoreCreateMutex();
-    assert("Failed to create mutex" && _mutex != NULL);
+        _mutex = xSemaphoreCreateMutex();
+        assert("Failed to create mutex" && _mutex != NULL);
+    }
 
     BaseType_t result = xTaskCreatePinnedToCore(taskFunction, _name,
             _stackDepth, this, _priority, &_taskHandle, _coreId);

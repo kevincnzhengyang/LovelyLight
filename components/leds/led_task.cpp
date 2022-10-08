@@ -77,6 +77,7 @@ void LedsTask::run(void)
         }
     }
 
+    LED_INFO("led preparing...");
     // prepare LEDs
     led_rgb_config_t rgb_config = LED_RGB_DEFAULT_CONFIG(CONFIG_PIN_LED_R,
             CONFIG_PIN_LED_G, CONFIG_PIN_LED_B);
@@ -86,11 +87,6 @@ void LedsTask::run(void)
         LED_ERROR("install LED driver failed");
         return;
     }
-    LED_INFO("led prepared");
-
-    // apply value
-    _leds->set_rgb(_leds, (uint32_t)_led_color->r, (uint32_t)_led_color->g,
-            (uint32_t)_led_color->b);
 
     LED_INFO("running...");
 
@@ -101,14 +97,13 @@ void LedsTask::run(void)
         // recv command
         if (sizeof(uint8_t) == getMessage(&cmd, sizeof(uint8_t), 10))
         {
+            LED_DEBUG("recv command %d", cmd);
             _handleCommand((LedCmdType)cmd);
         }
 
         // update light if in breath
         if (_switch_on && _breath_en) _breathLight();
         if (_switch_on && _random_en) _randomLight();
-
-        delay(20);
 
         if (_lazy_en)
         {
@@ -129,6 +124,7 @@ void LedsTask::run(void)
 
 void LedsTask::_breathLight(void)
 {
+    // LED_DEBUG("in breath light");
     uint32_t h, s, v;
     _leds->get_hsv(_leds, &h, &s, &v);
 
@@ -157,6 +153,7 @@ void LedsTask::_breathLight(void)
 
 void LedsTask::_randomLight(void)
 {
+    // LED_DEBUG("in random light");
     uint32_t h, s, v;
     _leds->get_hsv(_leds, &h, &s, &v);
     /**< Set a random color */
@@ -171,19 +168,33 @@ void LedsTask::_handleCommand(LedCmdType cmd)
 {
     switch (cmd)
     {
+        case LedCmdType::LED_SLEEP:
+            LED_DEBUG("cmd Sleep");
+            break;
         case LedCmdType::LED_WAKEUP:
             {
-                uint32_t v = 120;
-                while (v < 250)
+                LED_DEBUG("cmd Wakeup");
+                if (!_switch_on)
                 {
-                    _leds->set_hsv(_leds, 88, 255, v);
-                    v += 10;
-                    delay(20);
+                    uint32_t v = 20;
+                    while (v < 80)
+                    {
+                        _leds->set_hsv(_leds, 120, 100, v);
+                        v += 10;
+                        delay(20);
+                    }
+                    // while (v > 20)
+                    // {
+                    //     _leds->set_hsv(_leds, 120, 100, v);
+                    //     v--;
+                    //     delay(20);
+                    // }
+                    _leds->set_rgb(_leds, 0, 0, 0);
                 }
-                _leds->set_rgb(_leds, 0, 0, 0);
             }
             break;
         case LedCmdType::LED_TURNON:
+            LED_DEBUG("cmd TurOn");
             if (!_switch_on)
             {
                 _leds->set_rgb(_leds, (uint32_t)_led_color->r,
@@ -192,6 +203,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             }
             break;
         case LedCmdType::LED_TURNOFF:
+            LED_DEBUG("cmd TurnOff");
             if (_switch_on)
             {
                 _leds->set_rgb(_leds, 0, 0, 0);
@@ -199,6 +211,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             }
             break;
         case LedCmdType::LED_BREATH_ON:
+            LED_DEBUG("cmd Breath On");
             if (!_switch_on)
             {
                 _leds->set_rgb(_leds, (uint32_t)_led_color->r,
@@ -208,27 +221,34 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             _breath_en = true;
             break;
         case LedCmdType::LED_BREATH_OFF:
+            LED_DEBUG("cmd Breath Off");
             _breath_en = false;
             // lazy flush the interested v
             _leds->get_rgb(_leds, &_led_color->r, &_led_color->g, &_led_color->b);
             _lazy_en = true;
             break;
         case LedCmdType::LED_RANDOM_ON:
+            LED_DEBUG("cmd Random On");
             if (!_switch_on)
             {
                 _leds->set_rgb(_leds, (uint32_t)_led_color->r,
                         (uint32_t)_led_color->g, (uint32_t)_led_color->b);
                 _switch_on = true;
             }
-            _random_en = true;
+            _randomLight();
+            _leds->get_rgb(_leds, &_led_color->r, &_led_color->g, &_led_color->b);
+            _lazy_en = true;
+            // _random_en = true;
             break;
         case LedCmdType::LED_RANDOM_OFF:
+            LED_DEBUG("cmd Random Off");
             _random_en = false;
             // lazy flush the interested h & s
             _leds->get_rgb(_leds, &_led_color->r, &_led_color->g, &_led_color->b);
             _lazy_en = true;
             break;
         case LedCmdType::LED_INCR_H:
+            LED_DEBUG("cmd Increase H");
             {
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
@@ -244,6 +264,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             }
             break;
         case LedCmdType::LED_DECR_H:
+            LED_DEBUG("cmd Decrease H");
             {
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
@@ -259,6 +280,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             }
             break;
         case LedCmdType::LED_INCR_S:
+            LED_DEBUG("cmd Increase S");
             {
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
@@ -274,6 +296,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             }
             break;
         case LedCmdType::LED_DECR_S:
+            LED_DEBUG("cmd Decrease S");
             {
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
@@ -289,6 +312,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             }
             break;
         case LedCmdType::LED_INCR_V:
+            LED_DEBUG("cmd Increase V");
             {
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
@@ -304,6 +328,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             }
             break;
         case LedCmdType::LED_DECR_V:
+            LED_DEBUG("cmd Decrease V");
             {
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
@@ -319,6 +344,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             }
             break;
         case LedCmdType::LED_INCR_R:
+            LED_DEBUG("cmd Increase R");
             if (_led_color->r < 245)
             {
                 _led_color->r += 10;
@@ -329,6 +355,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             _lazy_en = true;
             break;
         case LedCmdType::LED_DECR_R:
+            LED_DEBUG("cmd Decrease R");
             if (_led_color->r > 20)
             {
                 _led_color->r -= 10;
@@ -339,6 +366,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             _lazy_en = true;
             break;
         case LedCmdType::LED_INCR_G:
+            LED_DEBUG("cmd Increase G");
             if (_led_color->g < 245)
             {
                 _led_color->g += 10;
@@ -349,6 +377,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             _lazy_en = true;
             break;
         case LedCmdType::LED_DECR_G:
+            LED_DEBUG("cmd Decrease G");
             if (_led_color->g > 20)
             {
                 _led_color->g -= 10;
@@ -359,6 +388,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             _lazy_en = true;
             break;
         case LedCmdType::LED_INCR_B:
+            LED_DEBUG("cmd Increase B");
             if (_led_color->b < 245)
             {
                 _led_color->b += 10;
@@ -369,6 +399,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             _lazy_en = true;
             break;
         case LedCmdType::LED_DECR_B:
+            LED_DEBUG("cmd Decrease B");
             if (_led_color->b > 20)
             {
                 _led_color->b -= 10;

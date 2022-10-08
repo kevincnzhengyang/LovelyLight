@@ -13,6 +13,7 @@
 #include "freertos/task.h"
 #include "freertos/message_buffer.h"
 #include "freertos/semphr.h"
+#include "esp_task_wdt.h"
 
 class ActiveTask
 {
@@ -43,8 +44,14 @@ class ActiveTask
     private:
         static void taskFunction(void *param)
         {
+            ESP_ERROR_CHECK(esp_task_wdt_add(NULL));
+            ESP_ERROR_CHECK(esp_task_wdt_status(NULL));
+
             ActiveTask *task = (ActiveTask *)param;
             task->run();
+
+            ESP_ERROR_CHECK(esp_task_wdt_delete(NULL));
+            vTaskDelete(NULL);
         }
 
         uint32_t           _stackDepth;     // stack depth of freeRTOS task

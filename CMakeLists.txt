@@ -2,12 +2,12 @@
 # in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.5)
 
+# speech_recognition should be the first
 set(EXTRA_COMPONENT_DIRS
-    ${CMAKE_CURRENT_SOURCE_DIR}/component/board
-    ${CMAKE_CURRENT_SOURCE_DIR}/component/leds
-    # ${CMAKE_CURRENT_SOURCE_DIR}/../../components/led_rgb
-    # ${CMAKE_CURRENT_SOURCE_DIR}/../../components/sensor
-    # ${CMAKE_CURRENT_SOURCE_DIR}/../../components/button
+    ${CMAKE_CURRENT_SOURCE_DIR}/components/speech_recognition
+    ${CMAKE_CURRENT_SOURCE_DIR}/components/asr
+    ${CMAKE_CURRENT_SOURCE_DIR}/components/board
+    ${CMAKE_CURRENT_SOURCE_DIR}/components/leds
     )
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
