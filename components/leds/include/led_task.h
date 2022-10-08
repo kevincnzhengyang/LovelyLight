@@ -49,6 +49,8 @@ enum LedCmdType
     LED_DECR_G,
     LED_INCR_B,
     LED_DECR_B,
+    LED_SWITCH,
+    LED_ROLL_V,
     LED_CMD_BUTT
 };
 

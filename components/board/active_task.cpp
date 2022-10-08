@@ -49,6 +49,10 @@ void ActiveTask::begin(void)
         _mutex = xSemaphoreCreateMutex();
         assert("Failed to create mutex" && _mutex != NULL);
     }
+    else
+    {
+        _msgBuffSize = 0;
+    }
 
     BaseType_t result = xTaskCreatePinnedToCore(taskFunction, _name,
             _stackDepth, this, _priority, &_taskHandle, _coreId);
@@ -58,6 +62,7 @@ void ActiveTask::begin(void)
 size_t ActiveTask::putMessage(const void * pvTxData, size_t xDataLengthBytes,
         uint32_t msWait)
 {
+    if (_msgBuffSize <= 0) return 0;
     xSemaphoreTake(_mutex, pdMS_TO_TICKS(msWait));
     size_t size = xMessageBufferSend(_msgBuff, pvTxData, xDataLengthBytes,
             pdMS_TO_TICKS(msWait));
@@ -68,6 +73,7 @@ size_t ActiveTask::putMessage(const void * pvTxData, size_t xDataLengthBytes,
 size_t ActiveTask::getMessage(void * pvRxData, size_t xBufferLengthBytes,
         uint32_t msWait)
 {
+    if (_msgBuffSize <= 0) return 0;
     return xMessageBufferReceive(_msgBuff, pvRxData, xBufferLengthBytes,
             pdMS_TO_TICKS(msWait));
 }

@@ -51,5 +51,8 @@ menu "Lovely Ligh"
         config PIN_BUTTON
             int "GPIO for Button"
             default 0
+        config BUTTON_HIGH_FILTER_MS
+            int "timer for high filter"
+            default 50
     endmenu
 endmenu

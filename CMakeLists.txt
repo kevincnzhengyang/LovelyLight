@@ -8,6 +8,7 @@ set(EXTRA_COMPONENT_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/components/asr
     ${CMAKE_CURRENT_SOURCE_DIR}/components/board
     ${CMAKE_CURRENT_SOURCE_DIR}/components/leds
+    ${CMAKE_CURRENT_SOURCE_DIR}/components/sensor
     )
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

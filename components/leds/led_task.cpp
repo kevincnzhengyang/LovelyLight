@@ -91,9 +91,18 @@ void LedsTask::run(void)
     LED_INFO("running...");
 
     uint8_t cmd = (uint8_t)LedCmdType::LED_CMD_BUTT;
+    uint32_t last = millis();
     // loop
     while (true)
     {
+        uint32_t now = millis();
+        if (now - last >= pdMS_TO_TICKS(5000))
+        {
+            LED_DEBUG("reset watch dog");
+            last = now;
+            esp_task_wdt_reset();  // feed watch dog
+        }
+
         // recv command
         if (sizeof(uint8_t) == getMessage(&cmd, sizeof(uint8_t), 10))
         {
@@ -119,6 +128,7 @@ void LedsTask::run(void)
                 _lazy_counter = 0;
             }
         }
+        delay(10);
     }
 }
 
@@ -141,7 +151,7 @@ void LedsTask::_breathLight(void)
     {
         v++;
 
-        if (v >= 60)
+        if (v >= 340)
         {
             _dir = 1;
         }
@@ -253,7 +263,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
 
-                if (h < 245)
+                if (h < 360)
                 {
                     h += 10;
                 }
@@ -269,7 +279,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
 
-                if (h > 20)
+                if (h > 10)
                 {
                     h -= 10;
                 }
@@ -285,7 +295,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
 
-                if (s < 245)
+                if (s < 360)
                 {
                     s += 10;
                 }
@@ -301,7 +311,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
 
-                if (s > 20)
+                if (s > 10)
                 {
                     s -= 10;
                 }
@@ -317,7 +327,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
 
-                if (v < 245)
+                if (v < 360)
                 {
                     v += 10;
                 }
@@ -333,7 +343,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
                 uint32_t h, s, v;
                 _leds->get_hsv(_leds, &h, &s, &v);
 
-                if (v > 20)
+                if (v > 10)
                 {
                     v -= 10;
                 }
@@ -407,6 +417,51 @@ void LedsTask::_handleCommand(LedCmdType cmd)
 
             _leds->set_rgb(_leds, (uint32_t)_led_color->r,
                     (uint32_t)_led_color->g, (uint32_t)_led_color->b);
+            _lazy_en = true;
+            break;
+        case LedCmdType::LED_SWITCH:
+            LED_DEBUG("cmd Switch");
+            if (!_switch_on)
+            {
+                _leds->set_rgb(_leds, (uint32_t)_led_color->r,
+                        (uint32_t)_led_color->g, (uint32_t)_led_color->b);
+                _switch_on = true;
+            }
+            else
+            {
+                _leds->set_rgb(_leds, 0, 0, 0);
+                _switch_on = false;
+            }
+            break;
+        case LedCmdType::LED_ROLL_V:
+            LED_DEBUG("cmd Roll V");
+            if (!_switch_on) break;
+            static bool dir_incr;
+            uint32_t h, s, v;
+            _leds->get_hsv(_leds, &h, &s, &v);
+
+            if (dir_incr)
+            {
+                v += 10;
+                _leds->set_hsv(_leds, h, s, v);
+                if (v > 340)
+                {
+                    dir_incr = false;
+
+                }
+            }
+            else
+            {
+                v -= 10;
+                _leds->set_hsv(_leds, h, s, v);
+                if (v < 20)
+                {
+                    dir_incr = true;
+
+                }
+            }
+
+            _leds->get_rgb(_leds, &_led_color->r, &_led_color->r, &_led_color->r);
             _lazy_en = true;
             break;
         default:

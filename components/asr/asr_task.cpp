@@ -54,7 +54,8 @@ static void i2s_init(void)
         .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,    // must be the same as DSP configuration
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,    // must be the same as DSP configuration
         .communication_format = I2S_COMM_FORMAT_I2S,
-        .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2,
+        // .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2,
+        .intr_alloc_flags = ESP_INTR_FLAG_EDGE,
         .dma_buf_count = 3,
         .dma_buf_len = 300,
     };
@@ -127,7 +128,19 @@ void AsrTask::run(void)
 
     while (true)
     {
-        i2s_read(I2S_NUM_1, buffer, size * 2 * sizeof(int), &read_len, portMAX_DELAY);
+        i2s_read(I2S_NUM_1, buffer, size * 2 * sizeof(int), &read_len, pdMS_TO_TICKS(2000));
+        uint32_t now = millis();
+        if (now - last >= pdMS_TO_TICKS(5000))
+        {
+            ASR_DEBUG("reset watch dog");
+            last = now;
+            esp_task_wdt_reset();  // feed watch dog
+        }
+        else
+        {
+            ASR_DEBUG("%u <-> %u", now, last);
+            // delay(10);
+        }
 
         for (int x = 0; x < size * 2 / 4; x++)
         {
@@ -136,18 +149,10 @@ void AsrTask::run(void)
             buffer[x] = s1 | s2;
         }
 
-        uint32_t now = millis();
-        if (now - last >= 9000)
-        {
-            // ASR_DEBUG("reset watch dog");
-            last = now;
-            esp_task_wdt_reset();  // feed watch dog
-        }
-
         if (enable_wn)
         {
 
-            // ASR_DEBUG("wait for wakeup");
+            ASR_DEBUG("wait for wakeup");
             int r = g_wakenet->detect(g_model_wn_data, (int16_t *)buffer);
             if (r)
             {
@@ -167,6 +172,7 @@ void AsrTask::run(void)
         }
         else
         {
+            ASR_DEBUG("wait for command");
             int command_id = g_multinet->detect(g_model_mn_data, (int16_t *)buffer);
             if (command_id > -1)
             {

@@ -21,6 +21,7 @@
 #include "task_map.h"
 #include "led_task.h"
 #include "asr_task.h"
+#include "sensors_task.h"
 
 #define APP_TAG "App"
 #define APP_DEBUG(fmt, ...)  ESP_LOGD(APP_TAG, fmt, ##__VA_ARGS__)
@@ -33,8 +34,9 @@ extern "C" void app_main()
     // set log level
     esp_log_level_set("*", ESP_LOG_INFO);
     esp_log_level_set("LEDs", ESP_LOG_DEBUG);
-    esp_log_level_set("BlackBoard", ESP_LOG_DEBUG);
+    // esp_log_level_set("BlackBoard", ESP_LOG_DEBUG);
     esp_log_level_set("ASR", ESP_LOG_DEBUG);
+    esp_log_level_set("Sensors", ESP_LOG_DEBUG);
 
     APP_INFO("Startup..");
     APP_INFO("Free Heap Size: %d bytes", esp_get_free_heap_size());
@@ -62,20 +64,28 @@ extern "C" void app_main()
     APP_INFO("BlackBoard init");
 
     // leds task
-    LedsTask *ledsTask = new LedsTask("ledsTask", 2048, 24, 0);
+    LedsTask *ledsTask = new LedsTask("ledsTask", 2048, 4, 0);
     assert("Failed to create leds task" && NULL != ledsTask);
     APP_INFO("LED Task ready");
     assert(registTask(ledsTask));
     APP_INFO("LED Task registed");
-    ledsTask->begin();
+    // ledsTask->begin();
 
     // asr task
-    AsrTask *asrTask = new AsrTask("asrTask", 1024*8, 24, 1);
+    AsrTask *asrTask = new AsrTask("asrTask", 1024*8, 4, 1);
     assert("Failed to create asr task" && NULL != asrTask);
     APP_INFO("ASR Task ready");
     assert(registTask(asrTask));
     APP_INFO("ASR Task registed");
     asrTask->begin();
+
+    // sensors task
+    SensorsTask *sensorsTask = new SensorsTask("sensorsTask", 2048, 1, 0);
+    assert("Failed to create sensors task" && NULL != sensorsTask);
+    APP_INFO("Sensors Task ready");
+    assert(registTask(sensorsTask));
+    APP_INFO("Sensors Task registed");
+    sensorsTask->begin();
 
     while (1) {
         vTaskDelay(3000 / portTICK_PERIOD_MS);
