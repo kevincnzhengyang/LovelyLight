@@ -19,6 +19,7 @@
 #include "esp_log.h"
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
+// #include "esp_adc/adc_continuous.h"
 
 #include "active_task.h"
 #include "iot_button.h"

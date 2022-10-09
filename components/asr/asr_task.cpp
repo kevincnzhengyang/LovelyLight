@@ -152,13 +152,13 @@ void AsrTask::run(void)
                 // ASR_DEBUG("wait times %d", w_count);
                 if (w_count > 100)
                 {
+                    // Note: if do not uninstall i2s driver,
+                    // other tasks would not be resume forever
+                    // then task watch dog trigged
+
                     // ASR_DEBUG("wait for wakeup too long");
-                    // i2s_stop(I2S_NUM_1);
                     i2s_driver_uninstall(I2S_NUM_1);
-                    // ASR_DEBUG(">>>>>");
                     delay(5000);
-                    // ASR_DEBUG(".......");
-                    // i2s_start(I2S_NUM_1);
                     i2s_init();
                     w_count = 0;
                 }

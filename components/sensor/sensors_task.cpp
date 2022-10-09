@@ -9,6 +9,7 @@
  */
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #include "sensors_task.h"
 #include "task_map.h"
@@ -29,7 +30,7 @@ enum chrg_state_t {
     CHRG_STATE_FULL,
 };
 
-xQueueHandle      g_event_queue = NULL;     // gpio event queue
+QueueHandle_t     g_event_queue = NULL;     // gpio event queue
 
 int32_t                  g_vol_bat = 0;
 esp_adc_cal_characteristics_t *g_adc_chars = NULL;
@@ -154,7 +155,7 @@ void SensorsTask::run(void)
         if (xQueueReceive(g_event_queue, &io_num, pdMS_TO_TICKS(10)))
         {
             level = gpio_get_level((gpio_num_t)io_num);
-            SENSORS_DEBUG("GPIO[%d] intr, val: %d\n", io_num, level);
+            SENSORS_DEBUG("GPIO[%lu] intr, val: %uhh\n", io_num, level);
 
             if (io_num == CONFIG_PIN_VIAB_INT)
             {
@@ -208,7 +209,7 @@ void SensorsTask::_initBatterySensor()
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = (gpio_int_type_t)GPIO_PIN_INTR_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
     };
     gpio_config(&io_conf);
     SENSORS_DEBUG("GPIO for battery configured");
@@ -230,7 +231,7 @@ void SensorsTask::_initVibrationSensor()
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_ENABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = (gpio_int_type_t)GPIO_PIN_INTR_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
     };
     gpio_config(&io_conf);
 
@@ -283,5 +284,5 @@ void SensorsTask::_getBatteryInfo()
     {
         state = chrg_state_t::CHRG_STATE_FULL;
     }
-    SENSORS_INFO("battery %dmv level %d, state %d", g_vol_bat, level, state);
+    SENSORS_INFO("battery %ldmv level %ld, state %d", g_vol_bat, level, state);
 }

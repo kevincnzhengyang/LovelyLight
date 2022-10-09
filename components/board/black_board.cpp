@@ -7,7 +7,7 @@
  * @Description :
  * @Copyright (c) 2022 by Zheng, Yang, All Rights Reserved.
  */
-
+#include <string>
 #include <map>
 
 #include "esp_log.h"
@@ -68,36 +68,59 @@ void initBlackBoard(size_t buffSize)
     assert("Failed to open NVS" && ESP_OK == err);
 
     // find blackboard namespace in partition NVS_DEFAULT_PART_NAME (“nvs”)
-    nvs_iterator_t it = nvs_entry_find(NVS_DEFAULT_PART_NAME, "BlackBoard", NVS_TYPE_BLOB);
-    nvs_entry_info_t info;
-
-    BB_INFO("open NVS ok");
-
-    size_t cap = gDataBuffer.buffSize;
-    size_t length = cap;
-    while (NULL != it)
+    nvs_iterator_t it;
+    nvs_entry_find(NVS_DEFAULT_PART_NAME, "BlackBoard", NVS_TYPE_BLOB, &it);
+    err = nvs_entry_find(NVS_DEFAULT_PART_NAME,
+                    "BlackBoard", NVS_TYPE_BLOB, &it);
+    if (ESP_ERR_NVS_NOT_FOUND == err)
     {
-        nvs_entry_info(it, &info);
-        it = nvs_entry_next(it);
-        BB_INFO("loading %s from NVS", info.key);
-        err = nvs_get_blob(gDataBuffer.hNVS, info.key,
-                gDataBuffer.wrPtr, &length);
-        if (ESP_OK != err)
-        {
-            BB_ERROR("load %s failed due to %d", info.key, err);
-            ESP_ERROR_CHECK(nvs_flash_erase());
-            nvs_flash_init();
-            assert(false);
-        }
+        //  not exists
+        nvs_release_iterator(it);
+        BB_INFO("failed find data for BlackBoard");
+    }
+    else if (ESP_OK == err)
+    {
+        nvs_entry_info_t info;
+        BB_INFO("open NVS ok");
 
-        err = registBlackBoardData(info.key, length, true, 10);
-        if (ESP_OK != err)
+        size_t cap = gDataBuffer.buffSize;
+        size_t length = cap;
+        while (NULL != it)
         {
-            BB_ERROR("register %s failed due to %d", info.key, err);
-            assert(false);
+            nvs_entry_info(it, &info);
+            if(ESP_OK != (err = nvs_entry_next(&it)))
+            {
+                BB_ERROR("next %s failed due to %d", info.key, err);
+                ESP_ERROR_CHECK(nvs_flash_erase());
+                nvs_flash_init();
+                assert(false);
+            }
+            BB_INFO("loading %s from NVS", info.key);
+            if (ESP_OK != (err = nvs_get_blob(gDataBuffer.hNVS, info.key,
+                    gDataBuffer.wrPtr, &length)))
+            {
+                BB_ERROR("load %s failed due to %d", info.key, err);
+                ESP_ERROR_CHECK(nvs_flash_erase());
+                nvs_flash_init();
+                assert(false);
+            }
+
+            err = registBlackBoardData(info.key, length, true, 10);
+            if (ESP_OK != err)
+            {
+                BB_ERROR("register %s failed due to %d", info.key, err);
+                assert(false);
+            }
+            cap -= length;
+            length = cap;
         }
-        cap -= length;
-        length = cap;
+    }
+    else
+    {
+        BB_ERROR("failed find due to %d", err);
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        nvs_flash_init();
+        assert(false);
     }
 
     BB_INFO("init ok");

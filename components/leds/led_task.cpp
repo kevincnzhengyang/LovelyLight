@@ -9,6 +9,7 @@
  */
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_random.h"
 
 #include "led_task.h"
 

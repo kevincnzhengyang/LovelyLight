@@ -69,7 +69,7 @@ void printTasks(void)
     {
         vTaskGetInfo(iter->second->getHandle(), &xTaskDetails, pdTRUE, eInvalid);
         ESP_LOGI("Tasks",
-            "%d\t%s\t%d\t%d\t%d\t%d\t%p\t0x%x\n",
+            "%d\t%s\t%u\t%d\t%u\t%lu\t%p\t0x%lu\n",
             xTaskDetails.xCoreID, xTaskDetails.pcTaskName, xTaskDetails.xTaskNumber,
             xTaskDetails.eCurrentState, xTaskDetails.uxCurrentPriority,
             xTaskDetails.ulRunTimeCounter, xTaskDetails.pxStackBase,
