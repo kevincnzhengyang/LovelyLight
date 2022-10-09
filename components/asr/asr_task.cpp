@@ -15,10 +15,12 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "esp_system.h"
-#include "esp_spi_flash.h"
+
 #include "xtensa/core-macros.h"
 #include "esp_partition.h"
-#include "driver/i2s.h"
+#include "driver/i2s_std.h"
+#include "driver/gpio.h"
+
 #include "esp_log.h"
 #include "esp_spiffs.h"
 
@@ -46,28 +48,40 @@ static const esp_wn_iface_t *g_wakenet                     = &WAKENET_MODEL;
 static model_iface_data_t *g_model_wn_data                 = NULL;
 static const model_coeff_getter_t *g_model_wn_coeff_getter = &WAKENET_COEFF;
 
+static i2s_chan_handle_t                rx_chan;        // I2S rx channel handler
+
 static void i2s_init(void)
 {
-    i2s_config_t i2s_config = {
-        .mode = (i2s_mode_t)(I2S_MODE_MASTER|I2S_MODE_RX),           // the mode must be set according to DSP configuration
-        .sample_rate = 16000,                            // must be the same as DSP configuration
-        .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,    // must be the same as DSP configuration
-        .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,    // must be the same as DSP configuration
-        .communication_format = I2S_COMM_FORMAT_I2S,
-        // .intr_alloc_flags = ESP_INTR_FLAG_LEVEL2,
-        .intr_alloc_flags = ESP_INTR_FLAG_EDGE,
-        .dma_buf_count = 3,
-        .dma_buf_len = 300,
+    i2s_chan_config_t rx_chan_cfg =
+    {
+        .id = I2S_NUM_1,
+        .role = I2S_ROLE_MASTER,
+        .dma_desc_num = 3,
+        .dma_frame_num = 300,
+        .auto_clear = false,
     };
-    i2s_pin_config_t pin_config = {
-        .bck_io_num = CONFIG_PIN_DMIC_SCK,  // IIS_SCLK
-        .ws_io_num = CONFIG_PIN_DMIC_WS,    // IIS_LCLK
-        .data_out_num = -1,                // IIS_DSIN
-        .data_in_num = CONFIG_PIN_DMIC_SDO  // IIS_DOUT
+
+    ESP_ERROR_CHECK(i2s_new_channel(&rx_chan_cfg, NULL, &rx_chan));
+
+    i2s_std_config_t rx_std_cfg = {
+        .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(16000),
+        .slot_cfg = I2S_STD_MSB_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_STEREO),
+        .gpio_cfg = {
+            .mclk = I2S_GPIO_UNUSED,    // some codecs may require mclk signal, this example doesn't need it
+            .bclk = (gpio_num_t)CONFIG_PIN_DMIC_SCK,
+            .ws   = (gpio_num_t)CONFIG_PIN_DMIC_WS,
+            .dout = I2S_GPIO_UNUSED,
+            .din  = (gpio_num_t)CONFIG_PIN_DMIC_SDO,
+            .invert_flags = {
+                .mclk_inv = false,
+                .bclk_inv = false,
+                .ws_inv   = false,
+            },
+        },
     };
-    i2s_driver_install(I2S_NUM_1, &i2s_config, 0, NULL);
-    i2s_set_pin(I2S_NUM_1, &pin_config);
-    i2s_zero_dma_buffer(I2S_NUM_1);
+    ESP_ERROR_CHECK(i2s_channel_init_std_mode(rx_chan, &rx_std_cfg));
+
+    ESP_ERROR_CHECK(i2s_channel_enable(rx_chan));
 }
 
 AsrTask::AsrTask(const char *tName, uint32_t stackDepth, UBaseType_t priority,
@@ -109,14 +123,12 @@ void AsrTask::run(void)
             mn_num,  mn_sample_rate, audio_mn_chunksize, sizeof(int16_t));
 
     int size = audio_wn_chunksize;
-
     if (audio_mn_chunksize > audio_wn_chunksize) {
         size = audio_mn_chunksize;
     }
 
     int *buffer = (int *)malloc(size * 2 * sizeof(int));
     bool enable_wn = true;
-    uint32_t w_count = 0;
 
     ASR_INFO("Init I2S...");
     i2s_init();
@@ -124,11 +136,19 @@ void AsrTask::run(void)
     size_t read_len = 0;
     ASR_INFO("running...");
 
+    uint32_t last = millis();
+    uint32_t t_cmd = 0;
     while (true)
     {
-        w_count++;
+        uint32_t now = millis();
+        if (now - last >= pdMS_TO_TICKS(5000))
+        {
+            ASR_DEBUG("reset watch dog");
+            last = now;
+            esp_task_wdt_reset();  // feed watch dog
+        }
 
-        i2s_read(I2S_NUM_1, buffer, size * 2 * sizeof(int), &read_len, portMAX_DELAY);
+        i2s_channel_read(rx_chan, buffer, size * 2 * sizeof(int), &read_len, portMAX_DELAY);
 
         for (int x = 0; x < size * 2 / 4; x++)
         {
@@ -145,41 +165,26 @@ void AsrTask::run(void)
                 ASR_DEBUG("%s DETECTED", g_wakenet->get_word_name(g_model_wn_data, r));
                 _generateCommand(-1); // wakeup
                 enable_wn = false;
-                w_count = 0;
-            }
-            else
-            {
-                // ASR_DEBUG("wait times %d", w_count);
-                if (w_count > 100)
-                {
-                    // Note: if do not uninstall i2s driver,
-                    // other tasks would not be resume forever
-                    // then task watch dog trigged
-
-                    // ASR_DEBUG("wait for wakeup too long");
-                    i2s_driver_uninstall(I2S_NUM_1);
-                    delay(5000);
-                    i2s_init();
-                    w_count = 0;
-                }
+                t_cmd = now;    // update last command timestap
             }
         }
         else
         {
-            ASR_DEBUG("wait for command");
+            // ASR_DEBUG("wait for command");
             int command_id = g_multinet->detect(g_model_mn_data, (int16_t *)buffer);
             if (command_id > -1)
             {
                 ASR_DEBUG("MN test successfully, Commands ID: %d", command_id);
                 _generateCommand(command_id);
+                t_cmd = now;    // update last command timestap
             }
             else
             {
-                // ASR_DEBUG("MN test successfully, empty");
-                if (w_count > 100)
+                ASR_DEBUG("MN test successfully, empty %d", command_id);
+                if (now - t_cmd > pdMS_TO_TICKS(10000))
                 {
+                    ASR_DEBUG("expired, sleep");
                     enable_wn = true;
-                    w_count = 0;
                 }
             }
         }

@@ -33,20 +33,26 @@ extern "C" void app_main()
 {
     // set log level
     esp_log_level_set("*", ESP_LOG_INFO);
-    esp_log_level_set("LEDs", ESP_LOG_DEBUG);
+    // esp_log_level_set("LEDs", ESP_LOG_DEBUG);
     // esp_log_level_set("BlackBoard", ESP_LOG_DEBUG);
-    esp_log_level_set("ASR", ESP_LOG_DEBUG);
-    esp_log_level_set("Sensors", ESP_LOG_DEBUG);
+    // esp_log_level_set("ASR", ESP_LOG_DEBUG);
+    // esp_log_level_set("Sensors", ESP_LOG_DEBUG);
 
     APP_INFO("Startup..");
-    APP_INFO("Free Heap Size: %d bytes", esp_get_free_heap_size());
+    APP_INFO("Free Heap Size: %lu bytes", esp_get_free_heap_size());
     APP_INFO("IDF version: %s", esp_get_idf_version());
 
     // create event loop
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     // watchdog
-    ESP_ERROR_CHECK(esp_task_wdt_init(10000, false));
+    // esp_task_wdt_config_t wdtConfig =
+    // {
+    //     .timeout_ms = 10000,
+    //     .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
+    //     .trigger_panic = false,
+    // };
+    // ESP_ERROR_CHECK(esp_task_wdt_init(&wdtConfig));
     APP_INFO("Watch Dog init");
 
     /* Initialize NVS */
@@ -64,7 +70,7 @@ extern "C" void app_main()
     APP_INFO("BlackBoard init");
 
     // leds task
-    LedsTask *ledsTask = new LedsTask("ledsTask", 2048, 4, 0);
+    LedsTask *ledsTask = new LedsTask("ledsTask", 2048, 4, 1);
     assert("Failed to create leds task" && NULL != ledsTask);
     APP_INFO("LED Task ready");
     assert(registTask(ledsTask));
@@ -72,7 +78,7 @@ extern "C" void app_main()
     ledsTask->begin();
 
     // asr task
-    AsrTask *asrTask = new AsrTask("asrTask", 1024*8, 1, 1);
+    AsrTask *asrTask = new AsrTask("asrTask", 1024*8, 1, 0);
     assert("Failed to create asr task" && NULL != asrTask);
     APP_INFO("ASR Task ready");
     assert(registTask(asrTask));
@@ -80,7 +86,7 @@ extern "C" void app_main()
     asrTask->begin();
 
     // sensors task
-    SensorsTask *sensorsTask = new SensorsTask("sensorsTask", 2048, 24, 0);
+    SensorsTask *sensorsTask = new SensorsTask("sensorsTask", 2048, 24, 1);
     assert("Failed to create sensors task" && NULL != sensorsTask);
     APP_INFO("Sensors Task ready");
     assert(registTask(sensorsTask));

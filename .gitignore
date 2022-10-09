@@ -37,4 +37,4 @@ build
 
 *.old
 
-sdkconfig*
+sdkconfig.*
