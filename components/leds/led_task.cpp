@@ -188,18 +188,24 @@ void LedsTask::_handleCommand(LedCmdType cmd)
                 if (!_switch_on)
                 {
                     uint32_t v = 20;
-                    while (v < 80)
+                    while (v < 100)
                     {
-                        _leds->set_hsv(_leds, 120, 100, v);
-                        v += 10;
-                        delay(20);
+                        _leds->set_hsv(_leds, 60, 100, v);
+                        v++;
+                        delay(10);
                     }
-                    // while (v > 20)
-                    // {
-                    //     _leds->set_hsv(_leds, 120, 100, v);
-                    //     v--;
-                    //     delay(20);
-                    // }
+                    for (int i = 0; i < 3; i++)
+                    {
+                        esp_task_wdt_reset();  // feed watch dog
+                        delay(5000);
+                    }
+                    esp_task_wdt_reset();  // feed watch dog
+                    while (v > 2)
+                    {
+                        _leds->set_hsv(_leds, 60, 100, v);
+                        v--;
+                        delay(10);
+                    }
                     _leds->set_rgb(_leds, 0, 0, 0);
                 }
             }
