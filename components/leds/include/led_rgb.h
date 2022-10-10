@@ -133,7 +133,7 @@ typedef struct {
 } led_rgb_config_t;
 
 
-#define LED_RGB_DEFAULT_CONFIG(red_gpio, green_gpio, blue_gpio) {  \
+#define LED_RGB_DEFAULT_CONFIG(red_gpio, green_gpio, blue_gpio, led_duty) {  \
     .speed_mode = LEDC_LOW_SPEED_MODE,    \
     .timer_sel  = LEDC_TIMER_0,           \
     .red_gpio_num   = (red_gpio),         \

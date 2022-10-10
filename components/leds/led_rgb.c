@@ -170,17 +170,15 @@ static esp_err_t led_set_rgb(led_rgb_t *led_rgb, uint32_t red, uint32_t green, u
     led_pwm->rgb[2] = blue;
 
     uint8_t rgb[3];
-    rgb[0] = LEDGammaTable[red];
-    rgb[1] = LEDGammaTable[green];
-    rgb[2] = LEDGammaTable[blue];
+    rgb[0] = LEDGammaTable[(uint8_t)red];
+    rgb[1] = LEDGammaTable[(uint8_t)green];
+    rgb[2] = LEDGammaTable[(uint8_t)blue];
 
     for (size_t i = 0; i < 3; i++) {
         ledc_set_duty(led_pwm->speed_mode[i], led_pwm->channel[i], rgb[i]);
         ledc_update_duty(led_pwm->speed_mode[i], led_pwm->channel[i]);
     }
-
     return ESP_OK;
-
 }
 
 static esp_err_t led_set_hsv(led_rgb_t *led_rgb, uint32_t h, uint32_t s, uint32_t v)
@@ -252,7 +250,6 @@ static esp_err_t led_clear(led_rgb_t *led_rgb)
 
     return ESP_OK;
 }
-
 
 led_rgb_t *led_rgb_create(const led_rgb_config_t *cfg)
 {

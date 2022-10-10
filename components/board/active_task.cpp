@@ -8,6 +8,7 @@
  * @Copyright (c) 2022 by Zheng, Yang, All Rights Reserved.
  */
 #include "active_task.h"
+#include "task_map.h"
 
 #include <string.h>
 
@@ -41,6 +42,8 @@ MessageBufferHandle_t ActiveTask::getMessageBuffer(void)
 
 void ActiveTask::begin(void)
 {
+    assert(registTask(this));
+
     if (_msgBuffSize > 4)
     {
         _msgBuff = xMessageBufferCreate(_msgBuffSize);

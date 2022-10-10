@@ -73,24 +73,24 @@ extern "C" void app_main()
     LedsTask *ledsTask = new LedsTask("ledsTask", 2048, 4, 1);
     assert("Failed to create leds task" && NULL != ledsTask);
     APP_INFO("LED Task ready");
-    assert(registTask(ledsTask));
-    APP_INFO("LED Task registed");
+    // assert(registTask(ledsTask));
+    // APP_INFO("LED Task registed");
     ledsTask->begin();
 
     // asr task
     AsrTask *asrTask = new AsrTask("asrTask", 1024*8, 1, 0);
     assert("Failed to create asr task" && NULL != asrTask);
     APP_INFO("ASR Task ready");
-    assert(registTask(asrTask));
-    APP_INFO("ASR Task registed");
+    // assert(registTask(asrTask));
+    // APP_INFO("ASR Task registed");
     asrTask->begin();
 
     // sensors task
     SensorsTask *sensorsTask = new SensorsTask("sensorsTask", 2048, 24, 1);
     assert("Failed to create sensors task" && NULL != sensorsTask);
     APP_INFO("Sensors Task ready");
-    assert(registTask(sensorsTask));
-    APP_INFO("Sensors Task registed");
+    // assert(registTask(sensorsTask));
+    // APP_INFO("Sensors Task registed");
     sensorsTask->begin();
 
     while (1) {

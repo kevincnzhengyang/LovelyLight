@@ -49,8 +49,10 @@ enum LedCmdType
     LED_DECR_G,
     LED_INCR_B,
     LED_DECR_B,
-    LED_SWITCH,
-    LED_ROLL_V,
+    LED_SWITCH_LIGHT,
+    LED_SWITCH_BREATH,
+    LED_SWITCH_RANDOM,
+    LED_ROLL_LIGHT,
     LED_CMD_BUTT
 };
 
@@ -76,10 +78,13 @@ class LedsTask: public ActiveTask
 
         led_rgb_t               *_leds;
         led_color_t        *_led_color;
+        uint32_t           *_led_level;
 
         void _breathLight(void);
 
         void _randomLight(void);
 
         void _handleCommand(LedCmdType cmd);
+
+        void _setRGB(uint8_t r, uint8_t g, uint8_t b);
 };

@@ -104,24 +104,28 @@ static void t_vibration_handler(void *arg)
 
 static void pressButton(void *arg)
 {
-    uint8_t cmd = (uint8_t)LedCmdType::LED_ROLL_V;
+    uint8_t cmd = (uint8_t)(int)arg;
     sendMessageTo("ledsTask", &cmd, sizeof(uint8_t), 10);
 
-    SENSORS_DEBUG("Send command Roll V to Leds");
+    SENSORS_DEBUG("Send command %d to Leds", cmd);
 }
 
 SensorsTask::SensorsTask(const char *tName, uint32_t stackDepth, UBaseType_t priority,
         const BaseType_t coreId,
         size_t msgBuffSize) :
     ActiveTask {tName, stackDepth, priority, coreId, msgBuffSize},
-    _btn_handle {NULL}
+    _btn_breath {NULL},
+    _btn_random {NULL},
+    _btn_light {NULL}
 {
     SENSORS_INFO("Task Created");
 }
 
 SensorsTask::~SensorsTask()
 {
-    if (NULL != _btn_handle) iot_button_delete(_btn_handle);
+    if (NULL != _btn_breath) iot_button_delete(_btn_breath);
+    if (NULL != _btn_random) iot_button_delete(_btn_random);
+    if (NULL != _btn_light) iot_button_delete(_btn_light);
     SENSORS_INFO("Task Destroyed");
 }
 
@@ -159,7 +163,7 @@ void SensorsTask::run(void)
 
             if (io_num == CONFIG_PIN_VIAB_INT)
             {
-                uint8_t cmd = (uint8_t)LedCmdType::LED_SWITCH;
+                uint8_t cmd = (uint8_t)LedCmdType::LED_SWITCH_LIGHT;
                 sendMessageTo("ledsTask", &cmd, sizeof(uint8_t), 10);
                 SENSORS_DEBUG("Send Command Switch to Leds");
                 vTaskDelay(pdMS_TO_TICKS(250));
@@ -257,11 +261,24 @@ void SensorsTask::_initVibrationSensor()
 
 void SensorsTask::_initButton()
 {
-    _btn_handle = iot_button_create((gpio_num_t)CONFIG_PIN_BUTTON,
+    LedCmdType cmd = LedCmdType::LED_SWITCH_BREATH;
+    // breath button
+    _btn_breath = iot_button_create((gpio_num_t)CONFIG_PIN_BTN_BREATH,
             (button_active_t)0);
-    assert ("Failed to create button" && NULL != _btn_handle);
-
-    iot_button_set_evt_cb(_btn_handle, BUTTON_CB_TAP, pressButton, NULL);
+    assert ("Failed to create breath button" && NULL != _btn_breath);
+    iot_button_set_evt_cb(_btn_breath, BUTTON_CB_TAP, pressButton, (void *)cmd);
+    // random button
+    cmd = LedCmdType::LED_RANDOM_ON;
+    _btn_random = iot_button_create((gpio_num_t)CONFIG_PIN_BTN_RANDOM,
+            (button_active_t)0);
+    assert ("Failed to create breath button" && NULL != _btn_random);
+    iot_button_set_evt_cb(_btn_random, BUTTON_CB_TAP, pressButton, (void *)cmd);
+    // light button
+    cmd = LedCmdType::LED_ROLL_LIGHT;
+    _btn_light = iot_button_create((gpio_num_t)CONFIG_PIN_BTN_LIGHT,
+            (button_active_t)0);
+    assert ("Failed to create breath button" && NULL != _btn_light);
+    iot_button_set_evt_cb(_btn_light, BUTTON_CB_TAP, pressButton, (void *)cmd);
 }
 
 void SensorsTask::_getBatteryInfo()

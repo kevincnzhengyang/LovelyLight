@@ -31,7 +31,8 @@ LedsTask::LedsTask(const char *tName, uint32_t stackDepth, UBaseType_t priority,
     _lazy_en {false},
     _lazy_counter {0},
     _leds {NULL},
-    _led_color (NULL)
+    _led_color {NULL},
+    _led_level {0}
 {
     LED_INFO("Task Created");
 }
@@ -78,10 +79,41 @@ void LedsTask::run(void)
         }
     }
 
+    const char bb_level[] = "led_level\0";
+    _led_level = getBlackBoardData(bb_level, uint32_t);
+    if (NULL == _led_level)
+    {
+        // try to register
+        err = registPersistData(bb_level, sizeof(uint32_t));
+        if (ESP_OK != err)
+        {
+            LED_ERROR("Failed to register led_level %d", err);
+            return;
+        }
+        // init value
+        _led_level = getBlackBoardData(bb_level, uint32_t);
+        if (NULL == _led_level)
+        {
+            LED_ERROR("Failed to get led_level %d", err);
+            return;
+        }
+        else
+        {
+            LED_DEBUG("get led_level at %p", _led_level);
+        }
+        *_led_level = 4;
+        err = flushPublishData(bb_level);
+        if (ESP_OK != err)
+        {
+            LED_ERROR("Failed to flush led_level %d", err);
+            return;
+        }
+    }
+
     LED_INFO("led preparing...");
     // prepare LEDs
     led_rgb_config_t rgb_config = LED_RGB_DEFAULT_CONFIG(CONFIG_PIN_LED_R,
-            CONFIG_PIN_LED_G, CONFIG_PIN_LED_B);
+            CONFIG_PIN_LED_G, CONFIG_PIN_LED_B, *_led_duty);
     _leds = led_rgb_create(&rgb_config);
 
     if (!_leds) {
@@ -125,6 +157,11 @@ void LedsTask::run(void)
                 {
                     LED_ERROR("Failed to lazy flush led_color %d", err);
                 }
+                err = flushPublishData(bb_level);
+                if (ESP_OK != err)
+                {
+                    LED_ERROR("Failed to lazy flush led_level %d", err);
+                }
                 _lazy_en = false;
                 _lazy_counter = 0;
             }
@@ -135,45 +172,34 @@ void LedsTask::run(void)
 
 void LedsTask::_breathLight(void)
 {
-    // LED_DEBUG("in breath light");
-    uint32_t h, s, v;
-    _leds->get_hsv(_leds, &h, &s, &v);
-
+    LED_DEBUG("in breath light");
     if (_dir)
     {
-        v--;
-
-        if (v < 20)
+        (*_led_level)--;
+        if ((*_led_level) < 2)
         {
             _dir = 0;
         }
     }
     else
     {
-        v++;
-
-        if (v >= 340)
+        (*_led_level)++;
+        if ((*_led_level) > 9)
         {
             _dir = 1;
         }
     }
-
-    _leds->set_hsv(_leds, h, s, v);
+    _setRGB(_led_color->r, _led_color->g, _led_color->b);
 }
 
 
 void LedsTask::_randomLight(void)
 {
-    // LED_DEBUG("in random light");
-    uint32_t h, s, v;
-    _leds->get_hsv(_leds, &h, &s, &v);
-    /**< Set a random color */
-    h = esp_random() / 11930465;
-    s = esp_random() / 42949673;
-    s = s < 40 ? 40 : s;
-    _leds->set_hsv(_leds, h, s, v);
-}
+    LED_DEBUG("in random light");
+    _setRGB((uint8_t)esp_random(),
+            (uint8_t)esp_random(), (uint8_t)esp_random());
 
+}
 
 void LedsTask::_handleCommand(LedCmdType cmd)
 {
@@ -187,7 +213,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
                 LED_DEBUG("cmd Wakeup");
                 if (!_switch_on)
                 {
-                    uint32_t v = 20;
+                     uint32_t v = 20;
                     while (v < 100)
                     {
                         _leds->set_hsv(_leds, 60, 100, v);
@@ -214,8 +240,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             LED_DEBUG("cmd TurOn");
             if (!_switch_on)
             {
-                _leds->set_rgb(_leds, (uint32_t)_led_color->r,
-                        (uint32_t)_led_color->g, (uint32_t)_led_color->b);
+                _setRGB(_led_color->r, _led_color->g, _led_color->b);
                 _switch_on = true;
             }
             break;
@@ -223,7 +248,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             LED_DEBUG("cmd TurnOff");
             if (_switch_on)
             {
-                _leds->set_rgb(_leds, 0, 0, 0);
+                _setRGB(0, 0, 0);
                 _switch_on = false;
             }
             break;
@@ -231,8 +256,7 @@ void LedsTask::_handleCommand(LedCmdType cmd)
             LED_DEBUG("cmd Breath On");
             if (!_switch_on)
             {
-                _leds->set_rgb(_leds, (uint32_t)_led_color->r,
-                        (uint32_t)_led_color->g, (uint32_t)_led_color->b);
+                _setRGB(_led_color->r, _led_color->g, _led_color->b);
                 _switch_on = true;
             }
             _breath_en = true;
@@ -240,20 +264,19 @@ void LedsTask::_handleCommand(LedCmdType cmd)
         case LedCmdType::LED_BREATH_OFF:
             LED_DEBUG("cmd Breath Off");
             _breath_en = false;
-            // lazy flush the interested v
-            _leds->get_rgb(_leds, &_led_color->r, &_led_color->g, &_led_color->b);
-            _lazy_en = true;
             break;
         case LedCmdType::LED_RANDOM_ON:
             LED_DEBUG("cmd Random On");
             if (!_switch_on)
             {
-                _leds->set_rgb(_leds, (uint32_t)_led_color->r,
-                        (uint32_t)_led_color->g, (uint32_t)_led_color->b);
                 _switch_on = true;
             }
+            LED_DEBUG("cmd Random before %d %d %d", _led_color->r,
+                    _led_color->g, _led_color->b);
             _randomLight();
             _leds->get_rgb(_leds, &_led_color->r, &_led_color->g, &_led_color->b);
+            LED_DEBUG("cmd Random after %d %d %d", _led_color->r,
+                    _led_color->g, _led_color->b);
             _lazy_en = true;
             // _random_en = true;
             break;
@@ -426,53 +449,43 @@ void LedsTask::_handleCommand(LedCmdType cmd)
                     (uint32_t)_led_color->g, (uint32_t)_led_color->b);
             _lazy_en = true;
             break;
-        case LedCmdType::LED_SWITCH:
-            LED_DEBUG("cmd Switch");
+        case LedCmdType::LED_SWITCH_LIGHT:
+            LED_DEBUG("cmd Switch Light");
             if (!_switch_on)
             {
-                _leds->set_rgb(_leds, (uint32_t)_led_color->r,
-                        (uint32_t)_led_color->g, (uint32_t)_led_color->b);
+                _setRGB(_led_color->r, _led_color->g, _led_color->b);
                 _switch_on = true;
             }
             else
             {
-                _leds->set_rgb(_leds, 0, 0, 0);
+                _setRGB(0, 0, 0);
                 _switch_on = false;
             }
             break;
-        case LedCmdType::LED_ROLL_V:
-            LED_DEBUG("cmd Roll V");
+        case LedCmdType::LED_SWITCH_BREATH:
+            LED_DEBUG("cmd Switch Breath");
+            _breath_en = !_breath_en;
+            break;
+        case LedCmdType::LED_SWITCH_RANDOM:
+            LED_DEBUG("cmd Switch Random");
+            _random_en = !_random_en;
+            break;
+        case LedCmdType::LED_ROLL_LIGHT:
+            LED_DEBUG("cmd Roll Light");
             if (!_switch_on) break;
-            static bool dir_incr;
-            uint32_t h, s, v;
-            _leds->get_hsv(_leds, &h, &s, &v);
-
-            if (dir_incr)
-            {
-                v += 10;
-                _leds->set_hsv(_leds, h, s, v);
-                if (v > 340)
-                {
-                    dir_incr = false;
-
-                }
-            }
-            else
-            {
-                v -= 10;
-                _leds->set_hsv(_leds, h, s, v);
-                if (v < 20)
-                {
-                    dir_incr = true;
-
-                }
-            }
-
-            _leds->get_rgb(_leds, &_led_color->r, &_led_color->r, &_led_color->r);
+            _breathLight();
             _lazy_en = true;
             break;
         default:
             LED_WARN("unknow command type %d", cmd);
             break;
     }
+}
+
+void LedsTask::_setRGB(uint8_t r, uint8_t g, uint8_t b)
+{
+    uint8_t _r = (uint8_t)((uint32_t)r * (*_led_level) / 10);
+    uint8_t _g = (uint8_t)((uint32_t)g * (*_led_level) / 10);
+    uint8_t _b = (uint8_t)((uint32_t)b * (*_led_level) / 10);
+    _leds->set_rgb(_leds, _r, _g, _b);
 }

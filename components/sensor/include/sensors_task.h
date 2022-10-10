@@ -37,7 +37,9 @@ class SensorsTask: public ActiveTask
         void run(void);
 
     private:
-        button_handle_t    _btn_handle;
+        button_handle_t    _btn_breath;
+        button_handle_t    _btn_random;
+        button_handle_t     _btn_light;
 
         void      _initBatterySensor();
 
@@ -45,5 +47,5 @@ class SensorsTask: public ActiveTask
 
         void             _initButton();
 
-        void    _getBatteryInfo(void);
+        void     _getBatteryInfo(void);
 };

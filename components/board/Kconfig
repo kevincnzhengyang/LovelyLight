@@ -48,9 +48,15 @@ menu "Lovely Ligh"
             default 17 if IDF_TARGET_ESP32S2
     endmenu
     menu "Button Config"
-        config PIN_BUTTON
-            int "GPIO for Button"
+        config PIN_BTN_BREATH
+            int "GPIO for Button swith breath mode"
             default 0
+        config PIN_BTN_RANDOM
+            int "GPIO for Button radom color"
+            default 18
+        config PIN_BTN_LIGHT
+            int "GPIO for Button roll light"
+            default 19
         config BUTTON_HIGH_FILTER_MS
             int "timer for high filter"
             default 50
